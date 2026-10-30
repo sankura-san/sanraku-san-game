@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="The Mountain That Moves - a dark fantasy interactive story about what you will leave behind to reach a single wish." />
+  <meta name="theme-color" content="#08090c" />
+  <title>The Mountain That Moves — Interactive Visual Story</title>
+  <link rel="icon" type="image/svg+xml" href="assets/ui/favicon.svg" />
+  <!-- Fonts (optional): the game falls back to Georgia / system fonts if these cannot load. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/utilities.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+</head>
+<body data-scene="camp" class="min-h-screen flex flex-col justify-between selection:bg-[#d4af37]/30 selection:text-[#fff6d6]">
+  <a href="#screen-container" class="skip-link">Skip to story</a>
+
+  <!-- TOP NAVIGATION & TELEMETRY HUD -->
+  <header class="relative z-20 w-full max-w-4xl mx-auto px-4 sm:px-6 pt-4 pb-2 flex flex-wrap items-center justify-between gap-3 border-b border-[#7a828e]/15">
+    <div class="flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37]"></div>
+      <span class="font-story text-lg sm:text-xl tracking-wider uppercase text-[#e6e4e0]">The Mountain That Moves</span>
+      <span id="hud-traveler" class="hidden text-[11px] font-mono uppercase tracking-widest px-2.5 py-0.5 rounded bg-[#141820] border border-[#7a828e]/30 text-[#d4af37]">
+        TRAVELER: —
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="btn-journal" onclick="toggleJournalModal(true)" class="hidden px-2.5 py-1 rounded text-xs font-mono uppercase tracking-wider border border-[#7a828e]/30 bg-[#11141b] hover:border-[#d4af37] text-[#e6e4e0] transition">
+        What Remains
+      </button>
+      <button id="btn-turn-back" onclick="attemptTurnBackModal()" class="hidden px-2.5 py-1 rounded text-xs font-mono uppercase tracking-wider border border-[#e5a952]/40 bg-[#1a1612] hover:border-[#e5a952] text-[#e5a952] transition">
+        Look Back Down
+      </button>
+      <button id="btn-sound" onclick="toggleSound()" aria-pressed="false" class="px-2.5 py-1 rounded text-xs font-mono uppercase tracking-wider border border-[#7a828e]/30 bg-[#11141b] hover:border-[#d4af37] text-[#7a828e] hover:text-[#e6e4e0] transition">
+        Sound: Off
+      </button>
+      <button onclick="toggleAboutModal(true)" class="px-2.5 py-1 rounded text-xs font-mono uppercase tracking-wider border border-[#d4af37]/40 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#d4af37] transition">
+        About
+      </button>
+      <button onclick="promptRestart()" aria-label="Reset run" class="px-2 py-1 rounded text-xs font-mono uppercase tracking-wider border border-[#7a828e]/25 bg-[#11141b] hover:border-[#b83b2b] text-[#7a828e] hover:text-[#e6e4e0] transition" title="Reset Run">
+        ↻
+      </button>
+    </div>
+  </header>
+
+  <!-- REMAINS STATUS BAR (Tokens for Lantern, Memories, Name, Shadow) -->
+  <div id="remains-bar" class="hidden w-full max-w-4xl mx-auto px-4 sm:px-6 pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono uppercase tracking-wider text-[#7a828e]">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-[10px] text-[#7a828e]/70">REMAINS:</span>
+      <span id="token-lantern" class="px-2 py-0.5 rounded border border-[#7a828e]/30 bg-[#11141b] text-[#e6e4e0]">Lantern</span>
+      <span id="token-belongings" class="px-2 py-0.5 rounded border border-[#7a828e]/30 bg-[#11141b] text-[#e6e4e0]">Memories</span>
+      <span id="token-name" class="px-2 py-0.5 rounded border border-[#7a828e]/30 bg-[#11141b] text-[#e6e4e0]">Name</span>
+      <span id="token-shadow" class="px-2 py-0.5 rounded border border-[#7a828e]/30 bg-[#11141b] text-[#e6e4e0]">Shadow</span>
+    </div>
+    <div class="text-[10px] text-[#7a828e] hidden sm:block">
+      Each checkpoint offers a full sacrifice, a defiant bargain, or descent.
+    </div>
+  </div>
+
+  <!-- MAIN STORYBOOK SLIDE STAGE -->
+  <main class="relative z-10 flex-1 flex flex-col justify-center items-center w-full max-w-4xl mx-auto px-4 sm:px-6 py-2">
+
+    <!-- FILMSTRIP SLIDE PROGRESS HEADER -->
+    <div id="filmstrip-bar" class="w-full mb-2.5 flex items-center justify-between gap-2 px-1">
+      <div class="flex items-center gap-2">
+        <span id="slide-number-badge" class="px-2.5 py-0.5 rounded bg-[#d4af37]/15 border border-[#d4af37]/40 text-[10px] font-mono uppercase tracking-widest text-[#d4af37]">
+          SLIDE 00 // BASE CAMP
+        </span>
+        <span id="slide-scene-label" class="text-xs uppercase tracking-[0.18em] text-[#7a828e] hidden sm:inline">
+          The Foot of the Mountain
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Interactive Inspect Scene / Memory Slide Toggle inside Viewport -->
+        <button id="btn-inspect-slide" onclick="toggleSlideInspect()" class="hidden px-2.5 py-0.5 rounded bg-[#141820] border border-[#7a828e]/30 hover:border-[#d4af37] text-[10px] font-mono uppercase tracking-widest text-[#e6e4e0]/85 transition">
+          [Inspect Slide State]
+        </button>
+
+        <!-- Visual Slide Progress Strip -->
+        <div class="flex items-center gap-1.5" id="slide-dots-container">
+          <div class="slide-dot active" title="Slide 00: Base Camp"></div>
+          <div class="slide-dot" title="Slide 01: The Obsidian Gate"></div>
+          <div class="slide-dot" title="Slide 02: The Weeping Ravine"></div>
+          <div class="slide-dot" title="Slide 03: The Hall of Echoes"></div>
+          <div class="slide-dot" title="Slide 04: The Sunless Ridge"></div>
+          <div class="slide-dot" title="Slide 05: The Moving Summit"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UNIFIED STORYBOOK SLIDE FRAME (Visual Illustration + Story Deck) -->
+    <div id="slide-frame" class="w-full rounded-xl overflow-hidden border border-[#7a828e]/25 bg-[#0b0d10]/95 shadow-2xl backdrop-blur-md transition-all duration-700">
+
+      <!-- TOP HALF: ILLUSTRATED ANIMATED SCENE VIEWPORT -->
+      <div id="mountain-viewport" class="w-full h-64 sm:h-80 relative overflow-hidden bg-gradient-to-b from-[#060709] via-[#0d1016] to-[#131720] border-b border-[#7a828e]/20">
+        <!-- Separate art layers (assets/backgrounds): sky is a CSS background, ridges + pines drift with the pointer -->
+        <img class="art-layer layer-ridges" src="assets/backgrounds/far-ridges.svg" alt="" aria-hidden="true" draggable="false" />
+        <div id="choice-flash" class="pointer-events-none absolute inset-0 z-30" aria-hidden="true"></div>
+
+        <!-- Cinematic Slide Projector Shutter Flash Overlay -->
+        <div id="slide-shutter" class="pointer-events-none absolute inset-0 bg-[#050608] opacity-0 transition-opacity duration-300 z-40"></div>
+
+        <!-- Subtle Film Projector Scanline & Vignette Overlay -->
+        <div class="pointer-events-none absolute inset-0 z-20 opacity-25" style="background: radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.85) 100%), repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);"></div>
+
+        <!-- Interactive Particle Canvas Overlay (Snow, Ash, Lantern Sparks, Dissolving Memories) -->
+        <canvas id="scene-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
+
+        <!-- Slide Top Telemetry & Altitude Overlay -->
+        <div id="viewport-meta" class="hidden absolute top-3.5 left-4 right-4 flex justify-between items-center text-[11px] tracking-[0.18em] uppercase text-[#7a828e] z-30 pointer-events-none">
+          <div class="flex items-center gap-2 bg-[#07080a]/75 px-2.5 py-1 rounded border border-[#7a828e]/25 backdrop-blur-sm">
+            <span id="telemetry-dot" class="w-1.5 h-1.5 rounded-full bg-[#d4af37]"></span>
+            <span id="checkpoint-indicator">Base Camp</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div id="vitality-badge" class="bg-[#07080a]/75 px-2.5 py-1 rounded border border-[#7a828e]/25 backdrop-blur-sm font-mono text-[#e6e4e0]/85">
+              Vitality: Warm
+            </div>
+            <div class="bg-[#07080a]/75 px-2.5 py-1 rounded border border-[#7a828e]/25 backdrop-blur-sm font-mono text-[#d4af37]/90" id="summit-distance">
+              Summit: 1,200m
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive "Inspect Scene / Memory Slide" Projector Overlay inside the Slide Frame -->
+        <div id="slide-inspect-overlay" class="hidden absolute inset-0 z-30 bg-[#07080a]/90 backdrop-blur-md p-5 sm:p-6 flex flex-col justify-between transition-opacity duration-300">
+          <div class="flex items-center justify-between border-b border-[#7a828e]/25 pb-2">
+            <span class="text-xs font-mono uppercase tracking-[0.22em] text-[#d4af37]">SLIDE INSPECTION // VISUAL & MEMORY TELEMETRY</span>
+            <button onclick="toggleSlideInspect(false)" class="text-xs uppercase tracking-widest text-[#7a828e] hover:text-[#e6e4e0]">[Resume Scene ×]</button>
+          </div>
+          <div id="slide-inspect-content" class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-auto py-2 text-xs">
+            <!-- Dynamically populated by updateSlideInspectOverlay() -->
+          </div>
+          <div class="text-[11px] text-[#7a828e] italic font-story flex justify-between items-center border-t border-[#7a828e]/20 pt-2">
+            <span id="slide-inspect-wish"></span>
+            <span>Every choice alters the projector's lens.</span>
+          </div>
+        </div>
+
+        <!-- Animated Action Caption Toast inside Slide -->
+        <div id="slide-action-toast" class="pointer-events-none opacity-0 transition-opacity duration-500 absolute inset-x-0 bottom-4 flex justify-center z-30">
+          <span id="slide-action-text" class="px-4 py-1.5 rounded-full bg-[#07080a]/90 border border-[#d4af37]/50 text-xs uppercase tracking-[0.2em] text-[#e6e4e0] shadow-lg"></span>
+        </div>
+
+        <svg id="mountain-svg" viewBox="0 0 800 320" class="w-full h-full object-cover transition-transform duration-1000" preserveAspectRatio="xMidYMax slice" role="img" aria-label="A lone traveler with a lantern climbs a dark mountain path beneath a glowing summit">
+          <defs>
+            <radialGradient id="summitGlow" cx="50%" cy="25%" r="45%">
+              <stop offset="0%" stop-color="#d4af37" stop-opacity="0.28" />
+              <stop offset="100%" stop-color="#0d0f12" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="eclipseGlow" cx="50%" cy="30%" r="40%">
+              <stop offset="0%" stop-color="#b83b2b" stop-opacity="0.38" />
+              <stop offset="45%" stop-color="#d4af37" stop-opacity="0.16" />
+              <stop offset="100%" stop-color="#0d0f12" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="valleyDawnGlow" cx="50%" cy="75%" r="55%">
+              <stop offset="0%" stop-color="#e5a952" stop-opacity="0.42" />
+              <stop offset="60%" stop-color="#6ab0de" stop-opacity="0.15" />
+              <stop offset="100%" stop-color="#0d0f12" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="lanternGlowSvg" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fff3b0" stop-opacity="0.95" />
+              <stop offset="40%" stop-color="#d4af37" stop-opacity="0.48" />
+              <stop offset="100%" stop-color="#d4af37" stop-opacity="0" />
+            </radialGradient>
+            <linearGradient id="mountainFar" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#252b36" />
+              <stop offset="100%" stop-color="#0d0f12" />
+            </linearGradient>
+            <linearGradient id="mountainMid" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#171b22" />
+              <stop offset="100%" stop-color="#090b0e" />
+            </linearGradient>
+            <linearGradient id="snowFace" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#e8f0fb" stop-opacity="0.95" />
+              <stop offset="100%" stop-color="#8ea2bd" stop-opacity="0.35" />
+            </linearGradient>
+            <radialGradient id="moonGlow"><stop offset="0%" stop-color="#cfe3ff" stop-opacity="0.35" /><stop offset="100%" stop-color="#cfe3ff" stop-opacity="0" /></radialGradient>
+            <g id="pine-sym"><polygon points="0,-30 -8,-14 -4,-14 -11,0 -5,0 -13,14 13,14 5,0 11,0 4,-14 8,-14" /><rect x="-1.5" y="14" width="3" height="6" /></g>
+          </defs>
+
+          <!-- Warm Valley Dawn Glow (visible on Slide 6: Descent endings) -->
+          <rect id="valley-dawn-bg" x="0" y="0" width="800" height="320" fill="url(#valleyDawnGlow)" opacity="0" class="transition-opacity duration-1000" />
+
+          <!-- Stars, moon, drifting clouds and crows -->
+          <g class="px-sky">
+            <g id="stars-group" opacity="0.7">
+              <circle class="star" style="--d:0s" cx="110" cy="44" r="1.1" fill="#e6e4e0" />
+              <circle class="star" style="--d:1.2s" cx="235" cy="28" r="1.3" fill="#e6e4e0" />
+              <circle class="star" style="--d:2.1s" cx="330" cy="58" r="0.9" fill="#e6e4e0" />
+              <circle class="star" style="--d:.6s" cx="515" cy="36" r="1.2" fill="#e6e4e0" />
+              <circle class="star" style="--d:1.8s" cx="660" cy="52" r="1.4" fill="#e6e4e0" />
+              <circle class="star" style="--d:2.7s" cx="725" cy="26" r="1" fill="#e6e4e0" />
+              <circle class="star" style="--d:.9s" cx="400" cy="20" r="1.8" fill="#d4af37" />
+              <circle class="star" style="--d:3.1s" cx="60" cy="90" r="0.9" fill="#c9d6ea" />
+              <circle class="star" style="--d:1.5s" cx="170" cy="70" r="0.8" fill="#c9d6ea" />
+              <circle class="star" style="--d:2.4s" cx="590" cy="30" r="0.9" fill="#c9d6ea" />
+              <circle class="star" style="--d:.3s" cx="770" cy="84" r="1" fill="#c9d6ea" />
+              <circle class="star" style="--d:2.9s" cx="300" cy="100" r="0.8" fill="#c9d6ea" />
+            </g>
+            <g id="moon-group"><circle cx="650" cy="62" r="34" fill="url(#moonGlow)" /><circle cx="650" cy="62" r="11" fill="#dfe8f5" opacity="0.88" /><circle cx="646" cy="59" r="11" fill="#0c1422" opacity="0.18" /></g>
+            <g class="cloud cloud-a"><ellipse cx="180" cy="74" rx="90" ry="9" fill="#9fb0c8" opacity="0.1" /><ellipse cx="230" cy="68" rx="55" ry="7" fill="#9fb0c8" opacity="0.1" /></g>
+            <g class="cloud cloud-b"><ellipse cx="560" cy="112" rx="110" ry="10" fill="#9fb0c8" opacity="0.09" /><ellipse cx="610" cy="104" rx="60" ry="6" fill="#9fb0c8" opacity="0.09" /></g>
+            <g id="crows" fill="none" stroke="#05070a" stroke-width="1.4" stroke-linecap="round">
+              <path class="crow" style="--d:0s" d="M0,0 q4,-4 8,0 q4,-4 8,0" /><path class="crow" style="--d:.4s" transform="translate(-18 8)" d="M0,0 q4,-4 8,0 q4,-4 8,0" /><path class="crow" style="--d:.8s" transform="translate(-34 -4)" d="M0,0 q4,-4 8,0 q4,-4 8,0" />
+            </g>
+          </g>
+
+          <!-- Receding Summit Group (scaled by game.js per checkpoint) -->
+          <g id="summit-group" style="transform-origin: 400px 260px; transition: transform 1s ease;">
+            <circle cx="400" cy="72" r="115" fill="url(#summitGlow)" />
+            <polygon points="400,24 376,76 354,96 332,148 296,188 262,236 235,275 565,275 540,238 514,202 480,170 454,122 432,80" fill="url(#mountainFar)" stroke="#3b4352" stroke-width="0.9" />
+            <polygon points="400,24 376,76 354,96 332,148 296,188 262,236 235,275 400,275 392,210 410,150 388,92" fill="#0d1118" opacity="0.5" />
+            <polygon points="400,24 432,80 454,122 440,114 428,126 414,108 402,124 388,92 376,76" fill="url(#snowFace)" opacity="0.8" />
+            <polyline points="400,24 380,92 414,148 388,220" fill="none" stroke="#9aa3b2" stroke-width="1" stroke-opacity="0.35" />
+            <polyline points="400,24 428,104 398,165 432,235" fill="none" stroke="#7a828e" stroke-width="0.8" stroke-opacity="0.25" />
+            <g id="summit-beacon" opacity="0.9"><circle cx="400" cy="24" r="3" fill="#fff6d6" /><circle cx="400" cy="24" r="9" fill="#d4af37" opacity="0.28" /><path d="M400,6 V42 M386,24 H414" stroke="#fff6d6" stroke-width="0.7" opacity="0.6" /></g>
+          </g>
+
+          <!-- Drifting Fog Layer 1 -->
+          <g class="fog-layer-1">
+            <ellipse cx="400" cy="205" rx="350" ry="28" fill="#7a828e" opacity="0.12" />
+            <ellipse cx="250" cy="185" rx="230" ry="18" fill="#7a828e" opacity="0.1" />
+          </g>
+
+          <!-- Midground Flank Ridges + pines -->
+          <polygon points="85,120 -50,310 345,310" fill="url(#mountainMid)" />
+          <polygon points="715,112 455,310 850,310" fill="url(#mountainMid)" />
+          <g fill="#0a0d12">
+            <use href="#pine-sym" transform="translate(60 282) scale(.9)" /><use href="#pine-sym" transform="translate(98 272) scale(.7)" /><use href="#pine-sym" transform="translate(132 284) scale(.8)" />
+            <use href="#pine-sym" transform="translate(655 280) scale(.8)" /><use href="#pine-sym" transform="translate(690 270) scale(.65)" /><use href="#pine-sym" transform="translate(735 282) scale(.9)" />
+          </g>
+
+          <!-- SLIDE 0: Base Camp (Tent, Campfire Lantern, Timberline Pines) -->
+          <g id="prop-slide0" opacity="1" class="transition-opacity duration-700">
+            <polygon points="180,270 172,290 188,290" fill="#12161d" />
+            <polygon points="200,264 190,290 210,290" fill="#12161d" />
+            <polygon points="275,274 252,248 230,274" fill="#1f242d" stroke="#475061" stroke-width="1" />
+            <polygon points="252,248 252,274 266,274" fill="#2c3340" />
+            <circle cx="290" cy="271" r="14" fill="url(#lanternGlowSvg)" class="shrine-glow" />
+            <polygon points="287,273 290,263 293,273" fill="#ffdf80" />
+          </g>
+
+          <!-- SLIDE 1: The Obsidian Gate -->
+          <g id="prop-cp1" opacity="0" class="transition-opacity duration-700">
+            <path d="M 465,272 L 472,188 L 538,188 L 545,272 L 526,272 L 522,206 L 488,206 L 484,272 Z" fill="#161920" stroke="#4c5566" stroke-width="1.2" />
+            <rect x="435" y="242" width="16" height="28" rx="2" fill="#20252e" stroke="#636d80" stroke-width="0.9" />
+            <circle cx="443" cy="252" r="2" fill="#d4af37" class="shrine-glow" />
+            <circle cx="443" cy="260" r="1.5" fill="#d4af37" class="shrine-glow" />
+            <circle cx="505" cy="236" r="16" fill="url(#lanternGlowSvg)" class="shrine-glow" />
+            <path d="M 548,272 Q 565,242 585,268 Q 605,235 628,270" fill="none" stroke="#3c2a35" stroke-width="2.2" />
+          </g>
+
+          <!-- SLIDE 2: The Weeping Ravine -->
+          <g id="prop-cp2" opacity="0" class="transition-opacity duration-700">
+            <path d="M 420,268 Q 515,292 610,264" fill="none" stroke="#6c7587" stroke-width="2.5" stroke-dasharray="7 4" />
+            <path d="M 420,254 Q 515,278 610,250" fill="none" stroke="#49505e" stroke-width="1.2" />
+            <g class="shrine-glow">
+              <rect x="485" y="218" width="10" height="13" rx="1" transform="rotate(-12 485 218)" fill="#e6e4e0" fill-opacity="0.7" stroke="#d4af37" stroke-width="0.8" />
+              <rect x="525" y="198" width="9" height="12" rx="1" transform="rotate(18 525 198)" fill="#e6e4e0" fill-opacity="0.55" stroke="#6ab0de" stroke-width="0.8" />
+              <circle cx="506" cy="235" r="3.5" fill="#d4af37" fill-opacity="0.65" />
+            </g>
+          </g>
+
+          <!-- SLIDE 3: The Hall of Echoes -->
+          <g id="prop-cp3" opacity="0" class="transition-opacity duration-700">
+            <polygon points="475,270 502,270 498,175 480,168" fill="#1b222c" stroke="#6a778c" stroke-width="1.2" />
+            <polygon points="525,272 550,272 546,188 530,180" fill="#151a22" stroke="#4e5869" stroke-width="1" />
+            <polygon points="489,240 484,264 494,264" fill="#8ecbf0" fill-opacity="0.28" class="shrine-glow" />
+            <path d="M 452,270 Q 460,248 468,270 Z" fill="#5e6573" />
+            <circle cx="460" cy="249" r="3.5" fill="#7a828e" />
+            <circle cx="512" cy="202" r="2.2" fill="#c9d6ea" class="shrine-glow" />
+            <circle cx="490" cy="192" r="1.8" fill="#c9d6ea" class="shrine-glow" />
+          </g>
+
+          <!-- SLIDE 4: The Sunless Ridge -->
+          <g id="prop-cp4" opacity="0" class="transition-opacity duration-700">
+            <circle cx="535" cy="78" r="46" fill="url(#eclipseGlow)" class="shrine-glow" />
+            <circle cx="535" cy="78" r="18" fill="#050608" stroke="#d4af37" stroke-width="1.5" stroke-opacity="0.85" />
+            <polygon points="435,270 605,270 630,286 410,286" fill="#6ab0de" fill-opacity="0.2" stroke="#8ecbf0" stroke-width="1.2" stroke-opacity="0.55" />
+            <ellipse cx="515" cy="274" rx="24" ry="5" fill="#000000" opacity="0.8" />
+          </g>
+
+          <!-- SLIDE 5: The Moving Summit -->
+          <g id="prop-summit" opacity="0" class="transition-opacity duration-1000">
+            <ellipse cx="475" cy="220" rx="48" ry="68" fill="url(#summitGlow)" class="shrine-glow" />
+            <polygon points="475,155 460,270 490,270" fill="#fff6d6" fill-opacity="0.88" />
+            <circle cx="475" cy="155" r="6" fill="#ffffff" class="shrine-glow" />
+          </g>
+
+          <!-- SLIDE 6: The Descent / Turning Back -->
+          <g id="prop-descent" opacity="0" class="transition-opacity duration-1000">
+            <g transform="translate(115, 252)">
+              <polygon points="0,22 12,10 24,22" fill="#2b2118" />
+              <rect x="4" y="22" width="16" height="12" fill="#1c150f" />
+              <rect x="9" y="25" width="6" height="6" fill="#ffcf70" class="shrine-glow" />
+
+              <polygon points="32,25 42,15 52,25" fill="#2b2118" />
+              <rect x="35" y="25" width="14" height="10" fill="#1c150f" />
+              <rect x="40" y="27" width="4" height="5" fill="#ffcf70" class="shrine-glow" />
+
+              <circle cx="15" cy="26" r="24" fill="url(#lanternGlowSvg)" opacity="0.65" />
+              <circle cx="68" cy="29" r="2" fill="#ffdf80" />
+              <circle cx="82" cy="31" r="1.8" fill="#ffdf80" />
+            </g>
+          </g>
+          <!-- Drifting Fog Layer 2 -->
+          <g class="fog-layer-2">
+            <ellipse cx="470" cy="245" rx="310" ry="22" fill="#7a828e" opacity="0.14" />
+          </g>
+
+          <!-- Foreground Path & Ridge -->
+          <path d="M 0,285 Q 250,262 400,268 T 800,290 L 800,320 L 0,320 Z" fill="#07080b" />
+          <path d="M 220,320 Q 365,278 515,268" stroke="#2c323e" stroke-width="3" fill="none" stroke-dasharray="5 4" />
+
+          <!-- THE TRAVELER (game.js moves #traveler-group; CSS animates the inner #traveler-anim) -->
+          <g id="traveler-group" transform="translate(375, 236)">
+            <ellipse id="traveler-shadow" cx="-12" cy="33" rx="19" ry="4.5" fill="#020304" opacity="0.85" />
+            <g id="traveler-anim">
+              <line id="traveler-staff" x1="-7" y1="13" x2="-10" y2="33" stroke="#6b5a45" stroke-width="1.2" stroke-linecap="round" />
+              <path id="traveler-cloak" d="M 0,6 C -6,10 -10,24 -11,33 L 9,33 C 8,24 5,10 0,6 Z" fill="#c9cdd6" />
+              <path d="M 0,6 C 3,12 7,24 9,33 L 2,33 C 2,24 1,14 0,6 Z" fill="#8f96a4" />
+              <path d="M 0,-1 C -4.6,0 -5,6 -3.6,8 L 3.6,8 C 5,6 4.6,0 0,-1 Z" fill="#aab0bc" />
+              <ellipse cx="1" cy="4.4" rx="2" ry="2.5" fill="#0a0c10" />
+              <line id="traveler-arm" x1="2" y1="12" x2="12" y2="16.5" stroke="#c9cdd6" stroke-width="1.7" stroke-linecap="round" />
+              <g class="lantern-flame" id="svg-lantern">
+                <circle cx="14" cy="19" r="26" fill="url(#lanternGlowSvg)" />
+                <rect x="12" y="16.5" width="4" height="5.5" rx="0.8" fill="#ffdf80" stroke="#6b5a45" stroke-width="0.5" />
+                <circle cx="14" cy="19" r="2.2" fill="#fff9e2" />
+              </g>
+            </g>
+          </g>
+        </svg>
+
+        <img class="art-layer layer-pines" src="assets/backgrounds/foreground-pines.svg" alt="" aria-hidden="true" draggable="false" />
+      </div>
+
+      <!-- BOTTOM HALF: STORYBOOK SLIDE TEXT & BRANCHING CHOICES -->
+      <section id="screen-container" class="w-full p-6 sm:p-9 transition-all duration-500">
+        <!-- Dynamic Slide Content injected by game.js -->
+      </section>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between text-[11px] text-[#7a828e]/65">
+    <span>The Mountain That Moves // Interactive Visual Slide Story</span>
+    <span>HTML + CSS + JS (GitHub Pages Ready)</span>
+  </footer>
+
+  <!-- MODAL 1: JOURNAL ("WHAT REMAINS") -->
+  <div id="journal-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm items-center justify-center p-4">
+    <div class="w-full max-w-lg rounded-xl border border-[#7a828e]/30 bg-[#0d1016] p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[#7a828e]/20 pb-3 mb-4">
+        <span class="text-xs font-mono uppercase tracking-[0.2em] text-[#d4af37]">What Remains of You</span>
+        <button onclick="toggleJournalModal(false)" class="text-xs font-mono text-[#7a828e] hover:text-[#e6e4e0]">[Close ×]</button>
+      </div>
+      <div id="journal-body" class="font-story text-lg text-[#e6e4e0]/90 space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CUSTOM CONFIRMATION DIALOG (Never uses window.alert or confirm) -->
+  <div id="dialog-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-xl border border-[#7a828e]/30 bg-[#0d1016] p-6 shadow-2xl">
+      <h3 id="dialog-title" class="font-story text-2xl text-[#e6e4e0] mb-2"></h3>
+      <p id="dialog-message" class="text-sm text-[#7a828e] leading-relaxed mb-6"></p>
+      <div id="dialog-actions" class="flex items-center justify-end gap-3"></div>
+    </div>
+  </div>
+
+
+  <!-- MODAL 3: ABOUT -->
+  <div id="about-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <div class="w-full max-w-lg rounded-xl border border-[#7a828e]/30 bg-[#0d1016] p-6 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-[#7a828e]/20 pb-3 mb-4">
+        <span id="about-title" class="text-xs font-mono uppercase tracking-[0.2em] text-[#d4af37]">About This Climb</span>
+        <button onclick="toggleAboutModal(false)" class="text-xs font-mono text-[#7a828e] hover:text-[#e6e4e0]">[Close ×]</button>
+      </div>
+      <div class="font-story text-lg text-[#e6e4e0]/90 space-y-3">
+        <p>The mountain recedes with every step. At each checkpoint you may <strong>sacrifice</strong> something completely, <strong>bargain</strong> at a cost, or <strong>turn back</strong>. There are nine endings.</p>
+        <p class="text-[#7a828e] text-base">Your progress saves automatically in this browser. Use ↻ to begin again. Animations respect your system’s reduced-motion setting.</p>
+        <p class="text-[#7a828e] text-base">Built with plain HTML, CSS, JavaScript and SVG — no server, no build step.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/animations.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
